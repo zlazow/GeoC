@@ -1,0 +1,25 @@
+Notes File!
+
+Add any ideas of what needs to be added and changed
+
+To run:
+sudo g++ -I/Library/Frameworks/GDAL.framework/Versions/1.11/Headers -L/Library/Frameworks/GDAL.framework/unix/lib -lgdal [ComputeNDVI.cpp or metadata.cpp]
+
+./a.out
+
+Overall:
+-Add a Makefile
+-Add connected component thing
+
+ComputeNDVI:
+-Fix CreateCopy in "ComputeNDVI.cpp" so that it only has 1 band instead of how many.
+
+Stratton Ideas:
+gaussian mixture model estimation:
+-categories of things
+-each category has some base value, but they all have noise
+-data is a mixture 
+-what is the probability that one pixel is in any of the gaussians?
+
+grab-cut model
+-look at how they use max-flow object 
