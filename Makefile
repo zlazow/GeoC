@@ -2,17 +2,18 @@
 
 CC=clang
 CFLAGS=-Wall -g 
+LFLAGS= -I/Library/Frameworks/GDAL.framework/Versions/1.11/Headers -L/Library/Frameworks/GDAL.framework/unix/lib
 
-all: $(TARGETS)
+all: ComputeNDVI metadata
 
-ComputeNDVI: ComputeNDVI.o
-	$(CC) $(CFLAGS) -o $@ ComputeNDVI.o
+ComputeNDVI: ComputeNDVI.cpp
+	$(CC) $(CFLAGS) -o $(LFLAGS) $@ -lgdal ComputeNDVI.o
 
-metadata: metadata.o
-	$(CC) $(CFLAGS) -o $@ metadata.o
+metadata: metadata.cpp
+	$(CC) $(CFLAGS) -o $(LFLAGS) $@ -lgdal metadata.o
 
 clean:
-	$(RM) $(TARGETS) a.o
+	$(RM) ComputeNDVI metadata a.o
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
