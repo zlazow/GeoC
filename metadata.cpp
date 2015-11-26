@@ -3,10 +3,8 @@
 
 ///Library/Frameworks/GDAL.framework/Versions/1.11/Headers/
 ///Library/Frameworks?/GDAL.framework/unix/bin
-
-/*
-
 //sudo g++ -I/Library/Frameworks/GDAL.framework/Versions/1.11/Headers -L/Library/Frameworks/GDAL.framework/unix/lib -lgdal metadata.cpp
+
 /* 
 result: main.o
 	g++ main.o -L/ -lgdal -o result
