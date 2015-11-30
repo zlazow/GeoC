@@ -88,6 +88,9 @@ int main() {
 
 
 	}
+
+	//gdal_translate -b 1 -expand gray NDVI_GEO1.tif NDVI_GEO1.tif
+
 	printf("error is in closing or writeout\n");
 
 	//save/write image file to storage
