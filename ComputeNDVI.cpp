@@ -88,6 +88,10 @@ int main() {
 
 
 	}
+	char ** papszArgv[] = {"NDVI_GEO1.tif", -b, -expand};
+	GDALTranslateOptionsNew(papszArgv, NULL);
+	GDALDatasetH GDALTranslate("NDVI_GEO1.tif", "NDVI_GEO1.tif", -b 1 -expand gray, NULL);
+	GDALTranslateOptionsFree();
 
 	//gdal_translate -b 1 -expand gray NDVI_GEO1.tif NDVI_GEO1.tif
 
