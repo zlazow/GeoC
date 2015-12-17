@@ -1,6 +1,8 @@
 #include "gdal_priv.h"
 #include "cpl_conv.h" // for CPLMalloc()
 #include "cpl_string.h"
+#include "cpl_port.h"
+#include "gdal.h"
 
 int main() {
 	//Open File
@@ -8,8 +10,10 @@ int main() {
     GDALAllRegister();
     poDataset = (GDALDataset *) GDALOpen( "GE01.tif", GA_ReadOnly );
 
-    //Create new DataSet/File
-
+    GDALRasterBand  *poBand_r;
+	GDALRasterBand  *poBand_i;
+	poBand_r = poDataset->GetRasterBand( 3 ); //3 is red
+	poBand_i = poDataset->GetRasterBand( 4 ); //4 is NIR
 
     const char *pszFormat = "GTiff";
     GDALDriver *poDriver;
@@ -22,42 +26,35 @@ int main() {
 
 	GDALDataset *poNDVI_Dataset;
     papszMetadata = poDriver->GetMetadata();
-    if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATECOPY, FALSE ) ){
+    if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATE, FALSE ) ){
         printf( "Driver %s supports CreateCopy() method.\n", pszFormat );
 
-
-		poNDVI_Dataset = poDriver->CreateCopy( "NDVI_GEO1.tif", poDataset, FALSE, 
-		                                NULL, NULL, NULL );
+		poNDVI_Dataset = poDriver->Create( "NDVI_GE01.tif", poBand_r->GetXSize(), poBand_r->GetYSize(), 1, GDT_Byte, NULL);
+		//poNDVI_Dataset = poDriver->CreateCopy( "NDVI_GE01.tif", poDataset, FALSE, NULL, NULL, NULL );
 	}
 
 	GDALRasterBand  *poBand_ndvi;
+
 	poBand_ndvi = poNDVI_Dataset->GetRasterBand(1);
-	//poBand_ndvi->Fill(0);
 
 
-	//Fetch Raster Band
-	GDALRasterBand  *poBand_r;
-	GDALRasterBand  *poBand_i;
+
 
 
 	int             nBlockXSize, nBlockYSize;
-	poBand_r = poDataset->GetRasterBand( 3 ); //3 is red
-	poBand_i = poDataset->GetRasterBand( 4 ); //4 is NIR
 	poBand_r->GetBlockSize( &nBlockXSize, &nBlockYSize );
-	poBand_i->GetBlockSize( &nBlockXSize, &nBlockYSize );
-	poBand_ndvi->GetBlockSize( &nBlockXSize, &nBlockYSize);
 	int nBlocksX = (poBand_r->GetXSize() + nBlockXSize-1)/ nBlockXSize;
 	int nBlocksY = (poBand_r->GetYSize() + nBlockYSize-1)/ nBlockYSize;
+	fprintf(stderr, "nBlockXSize:%i, nBlockYSize:%i, nBlocksX:%i, nBlocksY:%i\n", nBlockXSize, nBlockYSize,nBlocksX,nBlocksY);
 
-	//do I ever free these?
 	GByte *pRedDataBuf = (GByte *) CPLMalloc(nBlockXSize * nBlockYSize);
 	GByte *pNIRDataBuf = (GByte *) CPLMalloc(nBlockXSize * nBlockYSize);
 	GByte *pNDVIBuf    = (GByte *) CPLMalloc(nBlockXSize * nBlockYSize);
-
+	int nValidX, nValidY;
 	for (int iBlockY = 0; iBlockY < nBlocksY ; iBlockY++){
-		for (int iBlockX = 0; iBlockX <nBlocksX; iBlockX++){
+		for (int iBlockX = 0; iBlockX < nBlocksX; iBlockX++){
 			float red, nir, ndvi;
-			int nValidX, nValidY;
+
 			poBand_r->ReadBlock(iBlockX, iBlockY, pRedDataBuf);
 			poBand_i->ReadBlock(iBlockX, iBlockY, pNIRDataBuf);
 			
@@ -75,29 +72,31 @@ int main() {
                     red = (float)pRedDataBuf[iX + iY * nBlockXSize];
 					nir = (float)pNIRDataBuf[iX + iY * nBlockXSize];
 					ndvi = (nir-red)/(nir+red);
-					ndvi = 127.5 + ndvi * 127.5;
+					if (ndvi<=0){
+						ndvi = 0;
+					}
+					else
+						ndvi = 255*ndvi;
 					//printf("%f, %f, %f ... ", red, nir, ndvi);
 					pNDVIBuf[iX + iY * nBlockXSize] = (uint8_t)ndvi;
                 }
             }
-             //printf("Got here1 %i, %i \n", iBlockX, iBlockY);
-             poBand_ndvi->WriteBlock(iBlockX, iBlockY, pNDVIBuf);
-             //printf("Got here2\n");
+            //printf("Got here1 y:%i, x:%i\n", iBlockY, iBlockX);
+
+            poBand_ndvi->WriteBlock(iBlockX, iBlockY, pNDVIBuf);
+            //printf("Got here2 y:%i, x:%i\n", iBlockY, iBlockX);
              
 		}
 
 
 	}
-	char ** papszArgv[] = {"NDVI_GEO1.tif", -b, -expand};
-	GDALTranslateOptions* options= GDALTranslateOptionsNew(papszArgv, NULL);
-	GDALDatasetH GDALTranslate("NDVI_GEO1.tif", "NDVI_GEO1.tif", options, NULL);
-	GDALTranslateOptionsFree();
-
-	//gdal_translate -b 1 -expand gray NDVI_GEO1.tif NDVI_GEO1.tif
-
-	printf("error is in closing or writeout\n");
-
-	//save/write image file to storage
+	char **papszOptions = NULL;
+	papszOptions = CSLSetNameValue( papszOptions, "TILED", "YES" );
+	if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATECOPY, FALSE ) ){
+		poNDVI_Dataset = poDriver->CreateCopy( "NDVI_GE01.tif", poNDVI_Dataset, FALSE, 
+		                                papszOptions, NULL, NULL );
+	}
+	
 	//NDVI = (NIR-red)/(NIR+red)
 
 	//Close Dataset
